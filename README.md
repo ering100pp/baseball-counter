@@ -1,2 +1,0 @@
-# baseball-counter
-やきうカウンターです
