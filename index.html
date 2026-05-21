@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>やきうカウンター</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  background:#0d0b1a;
+  color:#eee;
+  font-family:'Segoe UI',sans-serif;
+
+  max-width:520px;
+  margin:0 auto;
+
+  padding:24px 16px;
+}
+
+h1{
+  text-align:center;
+  font-size:22px;
+  color:#c8a84b;
+
+  margin-bottom:24px;
+}
+
+/* ===== 上部ステータス ===== */
+
+.summary{
+  display:flex;
+  gap:10px;
+
+  margin-bottom:20px;
+}
+
+.stat{
+  flex:1;
+
+  background:#181530;
+
+  border:1px solid #2a2550;
+  border-radius:12px;
+
+  padding:12px 8px;
+
+  text-align:center;
+}
+
+.stat-label{
+  font-size:11px;
+  color:#888;
+
+  margin-bottom:4px;
+}
+
+.stat-val{
+  font-size:24px;
+  font-weight:bold;
+
+  color:#c8a84b;
+}
+
+.stat-val.blue{
+  color:#5ee8d8;
+}
+
+/* ===== テーブル ===== */
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th{
+  font-size:12px;
+  color:#888;
+
+  padding:8px;
+
+  border-bottom:1px solid #2a2550;
+
+  text-align:center;
+}
+
+th:first-child{
+  text-align:left;
+}
+
+td{
+  padding:12px 8px;
+
+  border-bottom:1px solid #1e1c35;
+
+  text-align:center;
+
+  font-size:14px;
+}
+
+td:first-child{
+  text-align:left;
+  font-weight:bold;
+}
+
+/* ===== 色 ===== */
+
+.rank1 td:first-child{
+  color:#ffd700;
+}
+
+.rank2 td:first-child{
+  color:#ff7aa8;
+}
+
+.lucky td:first-child{
+  color:#ffe066;
+}
+
+.rank3 td:first-child{
+  color:#b7e48a;
+}
+
+.join td:first-child{
+  color:#ffffff;
+}
+
+.miss td:first-child{
+  color:#8a8a8a;
+}
+
+/* ===== 確率 ===== */
+
+.prob{
+  font-size:13px;
+  color:#aaa;
+}
+
+/* ===== ボタン ===== */
+
+.ctrl{
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:8px;
+}
+
+.btn{
+  width:40px;
+  height:40px;
+
+  border-radius:9px;
+
+  border:1px solid #3a3560;
+
+  background:#1e1c35;
+
+  color:#eee;
+
+  font-size:20px;
+
+  cursor:pointer;
+
+  transition:0.12s;
+}
+
+.btn:hover{
+  background:#2e2a55;
+}
+
+.btn:active{
+  transform:scale(.92);
+
+  box-shadow:0 0 8px #5ee8d8;
+}
+
+.btn:disabled{
+  opacity:0.3;
+  cursor:default;
+}
+
+.num{
+  font-size:18px;
+  font-weight:bold;
+
+  min-width:28px;
+}
+
+/* ===== リセット ===== */
+
+.reset{
+  display:block;
+
+  width:100%;
+
+  margin-top:18px;
+
+  padding:12px;
+
+  border-radius:10px;
+
+  border:1px solid #3a3560;
+
+  background:transparent;
+
+  color:#888;
+
+  font-size:14px;
+
+  cursor:pointer;
+
+  transition:0.12s;
+}
+
+.reset:hover{
+  background:#1e1c35;
+  color:#ccc;
+}
+
+/* ===== スマホ ===== */
+
+@media(max-width:480px){
+
+  body{
+    padding:16px 12px;
+  }
+
+  .summary{
+    gap:8px;
+  }
+
+  .stat-val{
+    font-size:20px;
+  }
+
+  .btn{
+    width:38px;
+    height:38px;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>やきうカウンター</h1>
+
+<div class="summary">
+
+  <div class="stat">
+    <div class="stat-label">試行回数</div>
+    <div class="stat-val" id="total">0</div>
+  </div>
+
+  <div class="stat">
+    <div class="stat-label">1回あたり平均カケラ</div>
+    <div class="stat-val blue" id="avg">—</div>
+  </div>
+
+  <div class="stat">
+    <div class="stat-label">総カケラ数</div>
+    <div class="stat-val blue" id="totalShards">0</div>
+  </div>
+
+</div>
+
+<table>
+
+  <thead>
+    <tr>
+      <th>名前</th>
+      <th>カケラ</th>
+      <th>確率</th>
+      <th>カウント</th>
+    </tr>
+  </thead>
+
+  <tbody id="tbody"></tbody>
+
+</table>
+
+<button class="reset" onclick="resetAll()">
+  リセット
+</button>
+
+<script>
+
+const ROWS = [
+
+  { name:'1等賞', shards:4 },
+
+  { name:'2等賞', shards:2 },
+
+  { name:'ラッキー賞', shards:1 },
+
+  { name:'ラッキー賞', shards:2 },
+
+  { name:'3等賞', shards:1 },
+
+  { name:'3等賞', shards:2 },
+
+  { name:'参加賞', shards:1 },
+
+  { name:'ハズレ', shards:0 },
+
+];
+
+const counts = new Array(ROWS.length).fill(0);
+
+/* ===== 保存 ===== */
+
+function save(){
+
+  localStorage.setItem(
+    'yakyu_counter_counts',
+    JSON.stringify(counts)
+  );
+}
+
+function load(){
+
+  const c = JSON.parse(
+    localStorage.getItem('yakyu_counter_counts')
+  );
+
+  if(c){
+
+    counts.splice(0, counts.length, ...c);
+  }
+}
+
+/* ===== 描画 ===== */
+
+function render(){
+
+  const total =
+    counts.reduce((a,b)=>a+b,0);
+
+  const totalShards =
+    ROWS.reduce(
+      (s,r,i)=>s + r.shards * counts[i],
+      0
+    );
+
+  const avg =
+    total > 0
+      ? (totalShards / total)
+          .toFixed(2)
+          .replace(/\.00$/,'')
+      : '—';
+
+  document.getElementById('total').textContent =
+    total;
+
+  document.getElementById('totalShards').textContent =
+    totalShards;
+
+  document.getElementById('avg').textContent =
+    avg;
+
+  const tbody =
+    document.getElementById('tbody');
+
+  tbody.innerHTML = '';
+
+  ROWS.forEach((r,i)=>{
+
+    const prob =
+      total > 0
+        ? (counts[i] / total * 100)
+            .toFixed(1) + '%'
+        : '—';
+
+    const tr =
+      document.createElement('tr');
+
+    /* ===== 色付け ===== */
+
+    if(r.name === '1等賞'){
+      tr.classList.add('rank1');
+    }
+
+    else if(r.name === '2等賞'){
+      tr.classList.add('rank2');
+    }
+
+    else if(r.name === 'ラッキー賞'){
+      tr.classList.add('lucky');
+    }
+
+    else if(r.name === '3等賞'){
+      tr.classList.add('rank3');
+    }
+
+    else if(r.name === '参加賞'){
+      tr.classList.add('join');
+    }
+
+    else if(r.name === 'ハズレ'){
+      tr.classList.add('miss');
+    }
+
+    tr.innerHTML = `
+      <td>${r.name}</td>
+
+      <td>${r.shards}</td>
+
+      <td class="prob">
+        ${prob}
+      </td>
+
+      <td>
+
+        <div class="ctrl">
+
+          <button
+            class="btn"
+            onclick="add(${i}, -1)"
+            ${counts[i] === 0 ? 'disabled' : ''}
+          >
+            −
+          </button>
+
+          <span class="num">
+            ${counts[i]}
+          </span>
+
+          <button
+            class="btn"
+            onclick="add(${i}, 1)"
+          >
+            ＋
+          </button>
+
+        </div>
+
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+
+  });
+
+}
+
+/* ===== 操作 ===== */
+
+function add(i,d){
+
+  counts[i] =
+    Math.max(0, counts[i] + d);
+
+  save();
+
+  render();
+}
+
+function resetAll(){
+
+  if(!confirm('リセットしますか？')){
+    return;
+  }
+
+  counts.fill(0);
+
+  save();
+
+  render();
+}
+
+/* ===== 初期化 ===== */
+
+load();
+
+render();
+
+</script>
+
+</body>
+</html>
